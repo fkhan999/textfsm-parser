@@ -29,6 +29,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["textfsm.pythonanywhere.com"]
 
+# STATIC_ROOT = BASE_DIR / "static"
+
 
 # Application definition
 
@@ -127,3 +129,4 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
