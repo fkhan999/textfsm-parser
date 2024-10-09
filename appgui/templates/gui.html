@@ -1,78 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TextFSM Parser</title>
-  <link href="/static/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/codemirror.css" />
-  <link rel="stylesheet" href="/static/css/shadowfox.css" />
-  <link rel="stylesheet" href="/static/css/parseatron.css?ver=123" />
-  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon" />
-  <script src="/static/js/jquery.min.js"></script>
-  <script src="/static/js/codemirror.js"></script>
-</head>
-
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">TextFSM Parser</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
-        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNavDropdown">
-        <ul class="navbar-nav">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
-              data-bs-toggle="dropdown" aria-expanded="false">
-              Templates
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-              {% if obj %} {% for model in obj %}
-              <li class="dropdown-item template_id" value="{{model.id}}">id: {{model.id}} sub_id: {{model.sub_id}}</li>
-              {% endfor %} {% else %}
-              <li class="dropdown-item">No templates found in database</li>
-              {% endif %}
-            </ul>
-          </li>
-        </ul>
-      </div>
-      <span> Header Mode &nbsp;</span>
-      <span><input id="fsmmode" type="checkbox"></span>
-    </div>
-  </nav>
-
-  <div class="container-fluid">
-    <div class="row gx1">
-      <div class="split">
-        <div id="split-0">
-          <div class="editor" id="text_textarea">
-            <textarea id="text_input" type="text" v-model="cli_text">
-              </textarea>
-          </div>
-        </div>
-        <div id="split-1">
-          <div class="editor" id="template_textarea">
-            <textarea id="template" v-model="message"> </textarea>
-          </div>
-        </div>
-        <div id="split-2">
-          <div class="editor" id="result_textarea">
-            <textarea id="result" v-model="message"> </textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/static/js/split.js"></script>
-  <script src="/static/js/javascript.js"></script>
-  <script src="/static/js/bootstrap.bundle.min.js"></script>
-  <!-- <script src="/static/js/parser.js"></script> -->
-  <script>
- // Debounce function to limit the frequency of function calls
+// Debounce function to limit the frequency of function calls
 function debounce(func, wait) {
   let timeout;
   return function (...args) {
@@ -85,27 +11,24 @@ function debounce(func, wait) {
   };
 }
 
-// Function to save CLI text and template to Chrome storage
-function saveToChromeStorage(cliText, templateText) {
-  chrome.storage.local.set({ 
-    cliText: cliText,
-    templateText: templateText 
-  }, function() {
-    console.log('CLI text and template saved to Chrome storage.');
-  });
+// Function to save CLI text and template to localStorage
+function saveToLocalStorage(cliText, templateText) {
+  localStorage.setItem('cliText', cliText);
+  localStorage.setItem('templateText', templateText);
+  console.log('CLI text and template saved to localStorage.');
 }
 
-// Function to load CLI text and template from Chrome storage
-function loadFromChromeStorage() {
-  chrome.storage.local.get(['cliText', 'templateText'], function(result) {
-    if (result.cliText) {
-      text_editor.getDoc().setValue(result.cliText);
-    }
-    if (result.templateText) {
-      template_editor.getDoc().setValue(result.templateText);
-    }
-    console.log('Loaded CLI text and template from Chrome storage.');
-  });
+// Function to load CLI text and template from localStorage
+function loadFromLocalStorage() {
+  const cliText = localStorage.getItem('cliText');
+  const templateText = localStorage.getItem('templateText');
+  if (cliText) {
+    text_editor.getDoc().setValue(cliText);
+  }
+  if (templateText) {
+    template_editor.getDoc().setValue(templateText);
+  }
+  console.log('Loaded CLI text and template from localStorage.');
 }
 
 // Variables for the selected mode and split size
@@ -158,8 +81,8 @@ const sendRequest = debounce(() => {
   const template_text = template_editor.doc.getValue();
   const cli_text = text_editor.getDoc().getValue();
 
-  // Save CLI text and template to Chrome storage
-  saveToChromeStorage(cli_text, template_text);
+  // Save CLI text and template to localStorage
+  saveToLocalStorage(cli_text, template_text);
 
   // Make an AJAX request to process the input
   $.ajax({
@@ -216,46 +139,7 @@ function setParseMode(mode) {
   }
 }
 
-// Load data from Chrome storage when the page is loaded
+// Load data from localStorage when the page is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  loadFromChromeStorage();
+  loadFromLocalStorage();
 });
-
-
-  </script>
-  <script>
-    setParseMode("textfsm");
-  </script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // Get all elements with the class 'nav-link'
-      var navLinks = document.querySelectorAll(".template_id");
-
-      // Loop through each nav link and add a click event listener
-      navLinks.forEach(function (link) {
-        link.addEventListener("click", function (event) {
-          // Prevent default link behavior
-          event.preventDefault();
-          $.ajax({
-            type: "POST",
-            url: "/api/get-template/",
-            data: { template_id: link.value },
-            headers: { "X-CSRFToken": "{{csrf_token}}" },
-            success: function (result) {
-              template_editor.getDoc().setValue(result.template);
-              text_editor.getDoc().setValue(result.text);
-
-
-            },
-          });
-
-          // For example, you can add additional actions such as navigation or displaying content
-        });
-      });
-    });
-  </script>
-
-  <!-- Add your other scripts and inline scripts here -->
-</body>
-
-</html>
