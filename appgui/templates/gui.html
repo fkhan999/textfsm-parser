@@ -72,7 +72,7 @@
   <script src="/static/js/bootstrap.bundle.min.js"></script>
   <!-- <script src="/static/js/parser.js"></script> -->
   <script>
-   // Debounce function
+ // Debounce function to limit the frequency of function calls
 function debounce(func, wait) {
   let timeout;
   return function (...args) {
@@ -85,13 +85,39 @@ function debounce(func, wait) {
   };
 }
 
+// Function to save CLI text and template to Chrome storage
+function saveToChromeStorage(cliText, templateText) {
+  chrome.storage.local.set({ 
+    cliText: cliText,
+    templateText: templateText 
+  }, function() {
+    console.log('CLI text and template saved to Chrome storage.');
+  });
+}
+
+// Function to load CLI text and template from Chrome storage
+function loadFromChromeStorage() {
+  chrome.storage.local.get(['cliText', 'templateText'], function(result) {
+    if (result.cliText) {
+      text_editor.getDoc().setValue(result.cliText);
+    }
+    if (result.templateText) {
+      template_editor.getDoc().setValue(result.templateText);
+    }
+    console.log('Loaded CLI text and template from Chrome storage.');
+  });
+}
+
+// Variables for the selected mode and split size
 let selected_mode = "textfsm";
 let split_size = 2;
 
+// Initialize the default values for the editors
 document.getElementById("text_input").value = "Enter your CLI text here";
 document.getElementById("template").value = `And your ${selected_mode} template here`;
 document.getElementById("result").value = `View your result here`;
 
+// Initialize CodeMirror editors for text input, template, and result
 var txt_area = document.getElementById("text_input");
 var text_editor = CodeMirror.fromTextArea(txt_area, {
   lineNumbers: true,
@@ -127,9 +153,15 @@ var result_editor = CodeMirror.fromTextArea(result_area, {
   readOnly: true,
 });
 
+// Function to send a debounced request to the server
 const sendRequest = debounce(() => {
   const template_text = template_editor.doc.getValue();
   const cli_text = text_editor.getDoc().getValue();
+
+  // Save CLI text and template to Chrome storage
+  saveToChromeStorage(cli_text, template_text);
+
+  // Make an AJAX request to process the input
   $.ajax({
     type: "POST",
     url: `/api/${selected_mode}/`,
@@ -146,15 +178,17 @@ const sendRequest = debounce(() => {
   });
 }, 200);
 
-// Add the debounce function to the editors' change events
+// Attach the debounced sendRequest function to the editors' change events
 text_editor.on("change", sendRequest);
 template_editor.on("change", sendRequest);
 
+// Handle the change of the fsmmode checkbox
 document.getElementById("fsmmode").onchange = function() {
   console.log("fsmmode change");
   sendRequest();
 };
 
+// Function to manage the splitting of UI panels
 function doSplit(split_array) {
   if (split_size !== split_array.length) {
     $(".gutter-horizontal").remove();
@@ -165,6 +199,7 @@ function doSplit(split_array) {
   }
 }
 
+// Function to set the parsing mode and update the UI
 function setParseMode(mode) {
   selected_mode = mode;
   template_editor.getDoc().setValue(`And your ${selected_mode} template here`);
@@ -180,6 +215,12 @@ function setParseMode(mode) {
     doSplit(["#split-0", "#split-1", "#split-2"]);
   }
 }
+
+// Load data from Chrome storage when the page is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  loadFromChromeStorage();
+});
+
 
   </script>
   <script>
